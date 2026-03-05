@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XAUUSD — Trading Blueprint</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #D4AF37;
+    --gold-light: #F0D060;
+    --gold-dim: #8B7020;
+    --black: #0A0A08;
+    --surface: #111109;
+    --surface2: #1A1A14;
+    --surface3: #242418;
+    --border: #2A2A1E;
+    --text: #E8E8D8;
+    --text-dim: #888878;
+    --green: #4CAF72;
+    --red: #E05555;
+    --orange: #E09030;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--black);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated gold grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  header {
+    padding: 3rem 2rem 2rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 3.5rem;
+    letter-spacing: 0.08em;
+    color: var(--gold);
+    line-height: 1;
+    text-shadow: 0 0 40px rgba(212,175,55,0.3);
+  }
+
+  .logo span { color: var(--text-dim); font-size: 1rem; font-family: 'DM Mono', monospace; letter-spacing: 0.2em; display: block; margin-bottom: 0.3rem; }
+
+  .live-badge {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--green);
+    border: 1px solid var(--green);
+    padding: 0.3rem 0.8rem;
+    letter-spacing: 0.15em;
+  }
+  .live-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: blink 1.4s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 0;
+    min-height: calc(100vh - 160px);
+  }
+
+  /* LEFT PANEL — inputs */
+  .inputs-panel {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    overflow-y: auto;
+  }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    color: var(--gold-dim);
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .input-group { display: flex; flex-direction: column; gap: 0.4rem; }
+
+  .input-group label {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .input-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  input[type="number"], input[type="range"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 1rem;
+    padding: 0.6rem 0.75rem;
+    outline: none;
+    transition: border-color 0.2s;
+    -moz-appearance: textfield;
+  }
+  input[type="number"]::-webkit-inner-spin-button { display: none; }
+  input[type="number"]:focus { border-color: var(--gold); }
+
+  .slider-wrap { display: flex; flex-direction: column; gap: 0.3rem; }
+  .slider-val {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.6rem;
+    color: var(--gold);
+    letter-spacing: 0.05em;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    padding: 0;
+    height: 3px;
+    background: var(--border);
+    border: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    background: var(--gold);
+    border-radius: 0;
+    cursor: pointer;
+  }
+
+  /* RIGHT PANEL — results */
+  .results-panel {
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    overflow-y: auto;
+  }
+
+  .results-top {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+
+  .stat-box {
+    background: var(--surface);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .stat-box .label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  .stat-box .value {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 2.4rem;
+    letter-spacing: 0.05em;
+    color: var(--gold);
+    line-height: 1;
+  }
+
+  .stat-box .sub {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .stat-box.highlight { background: var(--surface2); }
+  .stat-box.highlight .value { color: var(--gold-light); }
+
+  /* Monthly breakdown */
+  .monthly-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .monthly-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    color: var(--gold-dim);
+    text-transform: uppercase;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+
+  .monthly-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+  }
+  .monthly-table th {
+    padding: 0.6rem 1.5rem;
+    text-align: right;
+    color: var(--text-dim);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    border-bottom: 1px solid var(--border);
+    font-weight: 400;
+  }
+  .monthly-table th:first-child { text-align: left; }
+  .monthly-table td {
+    padding: 0.5rem 1.5rem;
+    text-align: right;
+    border-bottom: 1px solid rgba(42,42,30,0.5);
+    color: var(--text);
+  }
+  .monthly-table td:first-child { text-align: left; color: var(--text-dim); }
+  .monthly-table tr:hover td { background: var(--surface2); }
+
+  .pos { color: var(--green); }
+  .neg { color: var(--red); }
+  .neu { color: var(--orange); }
+
+  /* Risk matrix */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  .info-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+  }
+
+  .info-block h3 {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    color: var(--gold-dim);
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid rgba(42,42,30,0.6);
+    font-size: 0.78rem;
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-row .k { color: var(--text-dim); font-family: 'DM Mono', monospace; }
+  .info-row .v { color: var(--text); font-family: 'DM Mono', monospace; font-weight: 500; }
+  .info-row .v.gold { color: var(--gold); }
+
+  /* Drawdown meter */
+  .meter-wrap { margin-top: 0.75rem; }
+  .meter-label { display: flex; justify-content: space-between; font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--text-dim); margin-bottom: 0.3rem; }
+  .meter { height: 6px; background: var(--border); position: relative; }
+  .meter-fill { height: 100%; transition: width 0.4s ease; }
+  .meter-fill.green { background: var(--green); }
+  .meter-fill.orange { background: var(--orange); }
+  .meter-fill.red { background: var(--red); }
+
+  /* Capital needed banner */
+  .capital-banner {
+    background: linear-gradient(135deg, #1A1A0A 0%, #2A2A14 50%, #1A1A0A 100%);
+    border: 1px solid var(--gold-dim);
+    padding: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    flex-wrap: wrap;
+    position: relative;
+    overflow: hidden;
+  }
+  .capital-banner::before {
+    content: 'XAU';
+    position: absolute;
+    right: -1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: 'Bebas Neue', cursive;
+    font-size: 8rem;
+    color: rgba(212,175,55,0.04);
+    letter-spacing: 0.1em;
+    pointer-events: none;
+  }
+
+  .capital-main { display: flex; flex-direction: column; gap: 0.3rem; }
+  .capital-main .label { font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 0.25em; color: var(--gold-dim); text-transform: uppercase; }
+  .capital-main .amount { font-family: 'Bebas Neue', cursive; font-size: 4rem; color: var(--gold-light); letter-spacing: 0.05em; line-height: 1; text-shadow: 0 0 30px rgba(240,208,96,0.3); }
+  .capital-main .note { font-size: 0.75rem; color: var(--text-dim); max-width: 300px; line-height: 1.5; }
+
+  .capital-alts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    min-width: 260px;
+  }
+  .alt-box {
+    background: var(--surface2);
+    padding: 1rem 1.2rem;
+    display: flex; flex-direction: column; gap: 0.2rem;
+  }
+  .alt-box .al { font-family: 'DM Mono', monospace; font-size: 0.6rem; letter-spacing: 0.15em; color: var(--text-dim); text-transform: uppercase; }
+  .alt-box .av { font-family: 'Bebas Neue', cursive; font-size: 1.4rem; color: var(--text); }
+
+  .note-footer {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    line-height: 1.7;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+  }
+  .note-footer strong { color: var(--gold-dim); }
+
+  @media (max-width: 900px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .results-top { grid-template-columns: 1fr 1fr; }
+    .two-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span>TRADING BLUEPRINT</span>
+    XAUUSD
+  </div>
+  <div class="live-badge">LIVE CALCULATOR</div>
+</header>
+
+<div class="main-grid">
+
+  <!-- INPUTS -->
+  <aside class="inputs-panel">
+
+    <div>
+      <div class="section-label">Account</div>
+      <div class="input-row">
+        <div class="input-group">
+          <label>Account Size ($)</label>
+          <input type="number" id="capital" value="20000" step="500" oninput="calc()">
+        </div>
+        <div class="input-group">
+          <label>Risk per Trade (%)</label>
+          <input type="number" id="riskPct" value="1" step="0.1" min="0.1" max="5" oninput="calc()">
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Trade Setup</div>
+      <div class="input-row">
+        <div class="input-group">
+          <label>Primary RR</label>
+          <input type="number" id="rr" value="3" step="0.5" min="1" oninput="calc()">
+        </div>
+        <div class="input-group">
+          <label>Max RR (runners)</label>
+          <input type="number" id="rrMax" value="5" step="0.5" min="1" oninput="calc()">
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Daily Trades</div>
+      <div class="slider-wrap">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <label style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--text-dim)">Avg Trades/Day</label>
+          <span class="slider-val" id="tradesVal">1.5</span>
+        </div>
+        <input type="range" id="tradesDay" min="1" max="3" step="0.5" value="1.5" oninput="document.getElementById('tradesVal').textContent=this.value;calc()">
+        <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--text-dim);margin-top:2px">
+          <span>1</span><span>2</span><span>3</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Win Rate & Partials</div>
+      <div class="slider-wrap" style="margin-bottom:1rem">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <label style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--text-dim)">Win Rate (%)</label>
+          <span class="slider-val" id="winVal">65</span>
+        </div>
+        <input type="range" id="winRate" min="40" max="85" step="1" value="65" oninput="document.getElementById('winVal').textContent=this.value;calc()">
+        <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--text-dim);margin-top:2px">
+          <span>40%</span><span>65%</span><span>85%</span>
+        </div>
+      </div>
+      <div class="slider-wrap">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <label style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--text-dim)">Break Even Rate (of wins)</label>
+          <span class="slider-val" id="beVal">70</span>
+        </div>
+        <input type="range" id="beRate" min="40" max="90" step="1" value="70" oninput="document.getElementById('beVal').textContent=this.value;calc()">
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Partial Take Profile</div>
+      <div class="input-row">
+        <div class="input-group">
+          <label>First Partial (%)</label>
+          <input type="number" id="p1" value="50" step="5" min="10" max="90" oninput="calc()">
+        </div>
+        <div class="input-group">
+          <label>Second Partial (%)</label>
+          <input type="number" id="p2" value="25" step="5" min="0" max="50" oninput="calc()">
+        </div>
+      </div>
+      <div style="margin-top:0.75rem" class="input-group">
+        <label>Full TP Frequency (every X weeks)</label>
+        <input type="number" id="fullTP" value="2" step="1" min="1" oninput="calc()">
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Goal</div>
+      <div class="input-group">
+        <label>Monthly Withdrawal Target ($)</label>
+        <input type="number" id="goal" value="2000" step="100" oninput="calc()">
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- RESULTS -->
+  <section class="results-panel">
+
+    <!-- Capital Banner -->
+    <div class="capital-banner">
+      <div class="capital-main">
+        <div class="label">Minimum Capital Needed</div>
+        <div class="amount" id="minCapital">$20,000</div>
+        <div class="note" id="capitalNote">To safely withdraw $2,000/mo while risking 1% per trade and maintaining account growth.</div>
+      </div>
+      <div class="capital-alts">
+        <div class="alt-box">
+          <div class="al">Conservative</div>
+          <div class="av" id="capCons">$25,000</div>
+        </div>
+        <div class="alt-box">
+          <div class="al">Aggressive</div>
+          <div class="av" id="capAgg">$15,000</div>
+        </div>
+        <div class="alt-box">
+          <div class="al">Risk/Trade</div>
+          <div class="av" id="riskDollar">$200</div>
+        </div>
+        <div class="alt-box">
+          <div class="al">Daily Max DD</div>
+          <div class="av" id="dailyDD">$400</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top stats -->
+    <div class="results-top">
+      <div class="stat-box highlight">
+        <div class="label">Expected Monthly P&L</div>
+        <div class="value" id="monthlyPnl">$2,400</div>
+        <div class="sub" id="monthlyPnlSub">after partials & BE trades</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Daily Expected</div>
+        <div class="value" id="dailyExp">$110</div>
+        <div class="sub" id="dailyExpSub">~22 trading days</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Monthly Return %</div>
+        <div class="value" id="monthlyPct">12%</div>
+        <div class="sub">on current capital</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Trades/Month</div>
+        <div class="value" id="tradesMonth">33</div>
+        <div class="sub" id="tradesMonthSub">~1.5/day × 22 days</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Avg Win Value</div>
+        <div class="value" id="avgWin">$380</div>
+        <div class="sub">partials included</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Avg Loss Value</div>
+        <div class="value" id="avgLoss" style="color:var(--red)">$200</div>
+        <div class="sub">capped 1% risk</div>
+      </div>
+    </div>
+
+    <!-- Two col info -->
+    <div class="two-col">
+      <div class="info-block">
+        <h3>Trade Breakdown / Month</h3>
+        <div class="info-row"><span class="k">Total trades</span><span class="v" id="b_total">33</span></div>
+        <div class="info-row"><span class="k">Winning (full TP)</span><span class="v pos" id="b_wins">—</span></div>
+        <div class="info-row"><span class="k">Break Even exits</span><span class="v neu" id="b_be">—</span></div>
+        <div class="info-row"><span class="k">Partial closes (no full)</span><span class="v neu" id="b_partial">—</span></div>
+        <div class="info-row"><span class="k">Losses</span><span class="v neg" id="b_losses">—</span></div>
+        <div class="info-row"><span class="k">Full TP trades/month</span><span class="v gold" id="b_fullTP">~2</span></div>
+        <div class="info-row"><span class="k">Expectancy per trade</span><span class="v gold" id="b_expect">—</span></div>
+      </div>
+
+      <div class="info-block">
+        <h3>Risk Profile</h3>
+        <div class="info-row"><span class="k">Max daily drawdown</span><span class="v neg" id="r_dd">2%</span></div>
+        <div class="info-row"><span class="k">Max monthly drawdown</span><span class="v neg" id="r_mdd">—</span></div>
+        <div class="info-row"><span class="k">Profit factor</span><span class="v gold" id="r_pf">—</span></div>
+        <div class="info-row"><span class="k">Break-even win rate needed</span><span class="v" id="r_bew">—</span></div>
+        <div class="info-row"><span class="k">Consecutive losses to 10% DD</span><span class="v" id="r_consec">—</span></div>
+        <div class="info-row"><span class="k">Recovery factor</span><span class="v pos" id="r_rec">—</span></div>
+
+        <div class="meter-wrap">
+          <div class="meter-label"><span>Risk Level</span><span id="riskLevelLabel">MODERATE</span></div>
+          <div class="meter"><div class="meter-fill green" id="riskMeter" style="width:40%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly projection table -->
+    <div class="monthly-section">
+      <div class="monthly-header">
+        <span>6-Month Growth Projection</span>
+        <span id="projNote" style="color:var(--text-dim)">Compounding after withdrawal</span>
+      </div>
+      <table class="monthly-table">
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th>Start Balance</th>
+            <th>Gross P&L</th>
+            <th>Withdrawal</th>
+            <th>End Balance</th>
+            <th>Return %</th>
+          </tr>
+        </thead>
+        <tbody id="projTable"></tbody>
+      </table>
+    </div>
+
+    <div class="note-footer" id="footerNotes"></div>
+
+  </section>
+</div>
+
+<script>
+const TRADING_DAYS = 22;
+
+function fmt(n, decimals=0) {
+  return '$' + n.toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+function fmtPct(n) { return n.toFixed(1) + '%'; }
+function el(id) { return document.getElementById(id); }
+
+function calc() {
+  const capital     = parseFloat(el('capital').value) || 20000;
+  const riskPct     = parseFloat(el('riskPct').value) || 1;
+  const rr          = parseFloat(el('rr').value) || 3;
+  const rrMax       = parseFloat(el('rrMax').value) || 5;
+  const tradesDay   = parseFloat(el('tradesDay').value) || 1.5;
+  const winRate     = parseFloat(el('winRate').value) / 100 || 0.65;
+  const beRate      = parseFloat(el('beRate').value) / 100 || 0.70;  // of wins → BE exit
+  const p1          = parseFloat(el('p1').value) / 100 || 0.50;  // first partial of position
+  const p2          = parseFloat(el('p2').value) / 100 || 0.25;
+  const fullTPWeeks = parseFloat(el('fullTP').value) || 2;
+  const goal        = parseFloat(el('goal').value) || 2000;
+
+  const risk        = capital * (riskPct / 100);  // $ risk per trade
+  const reward      = risk * rr;                  // $ reward at primary TP
+  const rewardMax   = risk * rrMax;               // $ reward at runner TP
+
+  const tradesMonth = Math.round(tradesDay * TRADING_DAYS);
+  const wins        = Math.round(tradesMonth * winRate);
+  const losses      = tradesMonth - wins;
+
+  // of winning trades: some % go BE, remaining are proper wins
+  const beTrades    = Math.round(wins * beRate);
+  const properWins  = wins - beTrades;
+
+  // Full TP every X weeks → per month
+  const fullTPPerMonth = (4 / fullTPWeeks);  // e.g. every 2 weeks = 2/month
+
+  // Proper wins: some are full TP, rest are partial exits
+  // Assume 75% of proper wins see partial take (p1) then let rest run
+  // Average win value model:
+  // BE trades: ~0 P&L (slight slippage, call it 0)
+  // Partial win (no full TP): p1 portion of position gets reward at 1:rr, rest at break-even
+  //   → realised = p1 * reward + (1-p1) * 0 = p1 * reward
+  //   Some also take p2 portion: p1 * reward + p2 * reward*(rrMax/rr) + rest BE
+  const partialWins = properWins - Math.round(fullTPPerMonth);
+  const fullWins    = Math.round(fullTPPerMonth);
+
+  // Avg value of a partial win: first 50% at RR target, some 25% at 75% of target, rest BE
+  const avgPartialWin = (p1 * reward) + (p2 * reward * 0.75);
+
+  // Full TP win: full position runs to max RR
+  const avgFullWin    = rewardMax;
+
+  // Monthly P&L
+  const winPnL     = (partialWins * avgPartialWin) + (fullWins * avgFullWin);
+  const lossPnL    = losses * risk;
+  const netPnL     = winPnL - lossPnL;
+
+  const avgWinVal  = wins > 0 ? (winPnL / wins) : 0;
+
+  // Expectancy per trade
+  const expectancy = netPnL / tradesMonth;
+
+  // Profit factor
+  const pf         = lossPnL > 0 ? winPnL / lossPnL : 99;
+
+  // BE win rate needed: R × w = 1 × (1-w) → w = 1/(1+R)
+  const beWinRate  = 1 / (1 + rr);
+
+  // Min capital needed: monthly P&L must exceed goal
+  // netPnL = capital * riskPct/100 * multiplier
+  // minCapital = goal / (netPnL/capital)
+  const returnRate  = capital > 0 ? netPnL / capital : 0;
+  const minCapital  = returnRate > 0 ? goal / returnRate : 0;
+  const capCons     = minCapital * 1.3;
+  const capAgg      = minCapital * 0.8;
+
+  // Drawdown
+  const maxDailyDD  = risk * 2;  // 2 losses in a day
+  const maxDailyDDPct = (maxDailyDD / capital) * 100;
+
+  // Consecutive losses to 10% drawdown
+  const consecLosses = Math.ceil(capital * 0.1 / risk);
+
+  // Recovery factor
+  const recFactor = netPnL > 0 ? netPnL / (maxDailyDD * 5) : 0;
+
+  // Monthly drawdown estimate (5 losing days)
+  const mddPct = (risk * 10 / capital) * 100;
+
+  // Risk level meter
+  let riskColor = 'green', riskLabel = 'LOW', meterWidth = 25;
+  if (riskPct >= 2 || maxDailyDDPct >= 4) { riskColor = 'red'; riskLabel = 'HIGH'; meterWidth = 80; }
+  else if (riskPct >= 1.5 || maxDailyDDPct >= 3) { riskColor = 'orange'; riskLabel = 'MODERATE-HIGH'; meterWidth = 60; }
+  else if (riskPct >= 1) { riskColor = 'orange'; riskLabel = 'MODERATE'; meterWidth = 40; }
+
+  // ---- Render ----
+  el('minCapital').textContent = fmt(minCapital);
+  el('capitalNote').textContent = `To safely withdraw ${fmt(goal)}/mo while risking ${riskPct}% per trade on XAUUSD.`;
+  el('capCons').textContent = fmt(capCons);
+  el('capAgg').textContent  = fmt(capAgg);
+  el('riskDollar').textContent = fmt(risk);
+  el('dailyDD').textContent    = fmt(maxDailyDD);
+
+  el('monthlyPnl').textContent    = fmt(netPnL);
+  el('monthlyPnlSub').textContent = `${netPnL >= goal ? '✓ Meets' : '✗ Below'} $${goal.toLocaleString()} goal`;
+  el('monthlyPnl').style.color    = netPnL >= goal ? 'var(--green)' : 'var(--red)';
+  el('dailyExp').textContent      = fmt(netPnL / TRADING_DAYS);
+  el('dailyExpSub').textContent   = `~${TRADING_DAYS} trading days`;
+  el('monthlyPct').textContent    = fmtPct(returnRate * 100);
+  el('tradesMonth').textContent   = tradesMonth;
+  el('tradesMonthSub').textContent= `${tradesDay}/day × ${TRADING_DAYS} days`;
+  el('avgWin').textContent        = fmt(avgWinVal);
+  el('avgLoss').textContent       = fmt(risk);
+
+  el('b_total').textContent   = tradesMonth;
+  el('b_wins').textContent    = `${properWins} (${(properWins/tradesMonth*100).toFixed(0)}%)`;
+  el('b_be').textContent      = `${beTrades} (~0 P&L)`;
+  el('b_partial').textContent = `${partialWins} partial closes`;
+  el('b_losses').textContent  = `${losses} (${(losses/tradesMonth*100).toFixed(0)}%)`;
+  el('b_fullTP').textContent  = `~${fullWins}/month`;
+  el('b_expect').textContent  = fmt(expectancy, 2) + '/trade';
+
+  el('r_dd').textContent     = `${fmtPct(maxDailyDDPct)} (${fmt(maxDailyDD)})`;
+  el('r_mdd').textContent    = `~${fmtPct(mddPct)} est.`;
+  el('r_pf').textContent     = pf.toFixed(2);
+  el('r_bew').textContent    = fmtPct(beWinRate * 100) + ' (you: ' + fmtPct(winRate*100) + ')';
+  el('r_consec').textContent = consecLosses + ' straight losses';
+  el('r_rec').textContent    = recFactor.toFixed(2) + 'x';
+
+  el('riskMeter').style.width         = meterWidth + '%';
+  el('riskMeter').className           = `meter-fill ${riskColor}`;
+  el('riskLevelLabel').textContent    = riskLabel;
+  el('riskLevelLabel').style.color    = riskColor === 'green' ? 'var(--green)' : riskColor === 'orange' ? 'var(--orange)' : 'var(--red)';
+
+  // 6-month projection
+  let bal = capital;
+  let html = '';
+  for (let m = 1; m <= 6; m++) {
+    const startBal = bal;
+    // recalculate P&L on new balance
+    const r = startBal * (riskPct/100);
+    const rwd = r * rr;
+    const rwdMax = r * rrMax;
+    const ap = (p1*rwd) + (p2*rwd*0.75);
+    const wP = (partialWins * ap) + (fullWins * rwdMax);
+    const lP = losses * r;
+    const gross = wP - lP;
+    const withdrawal = Math.min(goal, gross * 0.9);
+    bal = startBal + gross - withdrawal;
+    const ret = (gross / startBal * 100);
+    html += `<tr>
+      <td>Month ${m}</td>
+      <td>${fmt(startBal)}</td>
+      <td class="${gross>=0?'pos':'neg'}">${fmt(gross)}</td>
+      <td class="neg">−${fmt(withdrawal)}</td>
+      <td>${fmt(bal)}</td>
+      <td class="${ret>=0?'pos':'neg'}">${fmtPct(ret)}</td>
+    </tr>`;
+  }
+  el('projTable').innerHTML = html;
+
+  // Footer notes
+  el('footerNotes').innerHTML = `
+    <strong>Assumptions:</strong> ${TRADING_DAYS} trading days/month · 
+    BE trades exit at ~0 P&L · 
+    Partial wins: ${(p1*100).toFixed(0)}% at 1:${rr} + ${(p2*100).toFixed(0)}% at ~75% of 1:${rrMax} · 
+    Full TP: full position exits at 1:${rrMax} · 
+    Max 2 losses/day before stopping (2% daily cap) · 
+    Projection compounds remaining balance after withdrawals. 
+    <strong>This is a probability model — actual results vary. Always manage risk.</strong>
+  `;
+}
+
+calc();
+</script>
+</body>
+</html>
